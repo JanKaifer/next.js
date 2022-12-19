@@ -105,12 +105,26 @@ function findDOMNode(
 
 const getElementIntersectionObserverEntry = (element: HTMLElement) =>
   new Promise<IntersectionObserverEntry>((resolve) => {
-    const intersectionObserver = new IntersectionObserver((entries) => {
-      if (entries.length === 0) return
+    let intersectionObserver: IntersectionObserver
+    const reportEntry = (entry: IntersectionObserverEntry) => {
       intersectionObserver.disconnect()
-      resolve(entries.sort((a, b) => a.time - b.time).reverse()[0])
+      resolve(entry)
+    }
+    intersectionObserver = new IntersectionObserver((entries) => {
+      console.log('callback', entries)
+      reportEntry(entries[0])
     })
     intersectionObserver.observe(element)
+    requestAnimationFrame(() => {
+      const entries = intersectionObserver.takeRecords()
+      console.log('takeRecords rAF', entries)
+      if (entries.length) reportEntry(entries[0])
+      setTimeout(() => {
+        const entries = intersectionObserver.takeRecords()
+        console.log('takeRecords setTimout', entries)
+        if (entries.length) reportEntry(entries[0])
+      }, 0)
+    })
   })
 
 /**
