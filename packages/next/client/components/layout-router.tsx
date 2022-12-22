@@ -155,7 +155,7 @@ class ScrollAndFocusHandler extends React.Component<{
 
         // Scroll to domNode if domNode is not in viewport when scrolled to top of document
         topOfElementVisible(domNode, (visible2) => {
-          if (!visible2) {
+          if (visible2) {
             // Scroll into view doesn't scroll horizontally by default when not needed
             handleSmoothScroll(() => domNode.scrollIntoView())
           }
