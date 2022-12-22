@@ -103,43 +103,37 @@ function findDOMNode(
   return ReactDOM.findDOMNode(instance)
 }
 
-const getElementIntersectionObserverEntry = (element: HTMLElement) =>
-  new Promise<IntersectionObserverEntry>((resolve) => {
-    let intersectionObserver: IntersectionObserver
-    const reportEntry = (entry: IntersectionObserverEntry) => {
-      intersectionObserver.disconnect()
-      resolve(entry)
-    }
-    intersectionObserver = new IntersectionObserver((entries) => {
-      console.log('callback', entries)
-      reportEntry(entries[0])
-    })
-    intersectionObserver.observe(element)
-    requestAnimationFrame(() => {
-      const entries = intersectionObserver.takeRecords()
-      console.log('takeRecords rAF', entries)
-      if (entries.length) reportEntry(entries[0])
-      setTimeout(() => {
-        const entries = intersectionObserver.takeRecords()
-        console.log('takeRecords setTimout', entries)
-        if (entries.length) reportEntry(entries[0])
-      }, 0)
-    })
+const getElementIntersectionObserverEntry = (
+  element: HTMLElement,
+  callback: (entry: IntersectionObserverEntry) => void
+) => {
+  const intersectionObserver = new IntersectionObserver((entries) => {
+    intersectionObserver.disconnect()
+    callback(entries[0])
   })
+  intersectionObserver.observe(element)
+}
 
 /**
  * Check if the top corner of the HTMLElement is in the viewport.
  */
-const topOfElementVisible = async (element: HTMLElement) => {
-  const entry = await getElementIntersectionObserverEntry(element)
-  return Math.abs(entry.boundingClientRect.top - entry.intersectionRect.top) < 1
+const topOfElementVisible = async (
+  element: HTMLElement,
+  callback: (isVisible: boolean) => void
+) => {
+  getElementIntersectionObserverEntry(element, (entry) => {
+    callback(
+      Math.abs(entry.boundingClientRect.top - entry.intersectionRect.top) < 1
+    )
+  })
 }
 
 class ScrollAndFocusHandler extends React.Component<{
   focusAndScrollRef: FocusAndScrollRef
   children: React.ReactNode
 }> {
-  async componentDidMount() {
+  // We use nested callback syntax for performance reasons, we neeed to finish before first paint.
+  componentDidMount() {
     // Handle scroll and focus, it's only applied once in the first useEffect that triggers that changed.
     const { focusAndScrollRef } = this.props
     const domNode = findDOMNode(this)
@@ -149,23 +143,27 @@ class ScrollAndFocusHandler extends React.Component<{
       focusAndScrollRef.apply = false
 
       // Try scrolling go the top of the document to be backward compatible with pages
-      if (!(await topOfElementVisible(domNode))) {
-        // scrollIntoView() called on `<html/>` element scrolls horizontally on chrome and firefox (that shouldn't happen)
-        // We could use it to scroll horizontally following RTL but that also seems to be broken - it will always scroll left
-        // scrollLeft = 0 also seems to ignore RTL and manually checking for RTL is too much hassle so we will scroll just vertically
-        handleSmoothScroll(() => {
-          document.documentElement.scrollTop = 0
+      topOfElementVisible(domNode, (visible1) => {
+        if (!visible1) {
+          // scrollIntoView() called on `<html/>` element scrolls horizontally on chrome and firefox (that shouldn't happen)
+          // We could use it to scroll horizontally following RTL but that also seems to be broken - it will always scroll left
+          // scrollLeft = 0 also seems to ignore RTL and manually checking for RTL is too much hassle so we will scroll just vertically
+          handleSmoothScroll(() => {
+            document.documentElement.scrollTop = 0
+          })
+        }
+
+        // Scroll to domNode if domNode is not in viewport when scrolled to top of document
+        topOfElementVisible(domNode, (visible2) => {
+          if (!visible2) {
+            // Scroll into view doesn't scroll horizontally by default when not needed
+            handleSmoothScroll(() => domNode.scrollIntoView())
+          }
+
+          // Set focus on the element
+          domNode.focus()
         })
-      }
-
-      // Scroll to domNode if domNode is not in viewport when scrolled to top of document
-      if (!(await topOfElementVisible(domNode))) {
-        // Scroll into view doesn't scroll horizontally by default when not needed
-        handleSmoothScroll(() => domNode.scrollIntoView())
-      }
-
-      // Set focus on the element
-      domNode.focus()
+      })
     }
   }
 
