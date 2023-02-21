@@ -860,5 +860,21 @@ createNextDescribe(
       await waitFor(1000)
       checkUrl()
     })
+
+    //describe.only('testing with cache', () => {
+    // This test will detect breakage only if two consecutive tests run in the same thread, so we need to run multiple of them.
+    let lastRandomData: undefined | string = undefined
+    for (let i = 0; i < 5; i++) {
+      // eslint-disable-next-line no-loop-func
+      it.only('should have clean cache in each test ' + i, async () => {
+        const $ = await next.render$('/variable-revalidate/revalidate-3')
+        const layoutData = $('#layout-data').text()
+        if (lastRandomData) {
+          expect(layoutData).not.toBe(lastRandomData)
+        }
+        lastRandomData = layoutData
+      })
+    }
+    //})
   }
 )

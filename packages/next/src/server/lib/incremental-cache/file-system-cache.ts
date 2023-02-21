@@ -129,6 +129,10 @@ export default class FileSystemCache implements CacheHandler {
     }
   }
 
+  private getFetchCachePath() {
+    return path.join(this.serverDistDir, '..', 'cache', 'fetch-cache')
+  }
+
   private async getFsPath({
     pathname,
     appDir,
@@ -145,13 +149,7 @@ export default class FileSystemCache implements CacheHandler {
       // we store in .next/cache/fetch-cache so it can be persisted
       // across deploys
       return {
-        filePath: path.join(
-          this.serverDistDir,
-          '..',
-          'cache',
-          'fetch-cache',
-          pathname
-        ),
+        filePath: path.join(this.getFetchCachePath(), pathname),
         isAppPath: false,
       }
     }
@@ -175,5 +173,11 @@ export default class FileSystemCache implements CacheHandler {
         isAppPath: true,
       }
     }
+  }
+
+  public testOnlyResetCache() {
+    console.log('resseting cache')
+    memoryCache?.reset()
+    this.fs.rmSync(this.getFetchCachePath())
   }
 }

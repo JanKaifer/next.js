@@ -232,6 +232,14 @@ export function createNextDescribe(
     afterAll(async () => {
       await next.destroy()
     })
+    afterEach(async () => {
+      // Reset the cache between tests
+      await next.fetch('/', {
+        headers: {
+          'x-nextjs-test-reset-cache': 'true',
+        },
+      })
+    })
 
     const nextProxy = new Proxy<NextInstance>({} as NextInstance, {
       get: function (_target, property) {

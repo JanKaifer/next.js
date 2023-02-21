@@ -442,5 +442,6 @@ export interface CacheFs {
   readFileSync(f: string): string
   writeFile(f: string, d: any): Promise<void>
   mkdir(dir: string): Promise<void | string>
+  rmSync(dir: string): void
   stat(f: string): Promise<{ mtime: Date }>
 }

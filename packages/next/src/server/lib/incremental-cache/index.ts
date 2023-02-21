@@ -44,6 +44,11 @@ export class CacheHandler {
     _data: IncrementalCacheValue | null,
     _fetchCache?: boolean
   ): Promise<void> {}
+
+  /**
+   * We need to reset the cache between test runs for reliable results
+   */
+  public testOnlyResetCache() {}
 }
 
 export class IncrementalCache {
@@ -93,6 +98,7 @@ export class IncrementalCache {
       // Allow cache size to be overridden for testing purposes
       maxMemoryCacheSize = parseInt(process.env.__NEXT_TEST_MAX_ISR_CACHE, 10)
     }
+
     this.dev = dev
     this.minimalMode = minimalMode
     this.requestHeaders = requestHeaders
@@ -106,6 +112,14 @@ export class IncrementalCache {
       _appDir: !!appDir,
       _requestHeaders: requestHeaders,
     })
+
+    // Allow cache to be reset between tests for more reliable testing
+    const resetHeader = 'x-nextjs-test-reset-cache'
+    console.log('headers', requestHeaders)
+    console.log('is test mode', process.env.__NEXT_TEST_MODE)
+    if (Boolean(process.env.__NEXT_TEST_MODE) && requestHeaders[resetHeader]) {
+      this.cacheHandler.testOnlyResetCache()
+    }
   }
 
   private calculateRevalidate(

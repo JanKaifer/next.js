@@ -79,6 +79,7 @@ import {
   RSC_VARY_HEADER,
   FLIGHT_PARAMETERS,
   FETCH_CACHE_HEADER,
+  NEXT_TEST_RESET_CACHE_HEADER,
 } from '../client/components/app-router-headers'
 import {
   MatchOptions,
@@ -1059,6 +1060,8 @@ export default abstract class Server<ServerOptions extends Options = Options> {
     { req, res, pathname, renderOpts: opts }: RequestContext,
     { components, query }: FindComponentsResult
   ): Promise<ResponsePayload | null> {
+    console.log('request', req)
+    console.log('all request headers', req.headers)
     const is404Page = pathname === '/404'
     const is500Page = pathname === '/500'
     const isAppPath = components.isAppPath
@@ -1078,6 +1081,15 @@ export default abstract class Server<ServerOptions extends Options = Options> {
 
     let staticPaths: string[] | undefined
     let fallbackMode: false | undefined | 'blocking' | 'static'
+
+    // Allows testing infra to reset cache between tests
+    if (
+      process.env.__NEXT_TEST_MODE &&
+      NEXT_TEST_RESET_CACHE_HEADER in req.headers
+    ) {
+      console.log('resetting cache', req.headers)
+      this.getIncrementalCache({ requestHeaders: { ...req.headers } })
+    }
 
     if (isAppPath) {
       const pathsResult = await this.getStaticPaths({

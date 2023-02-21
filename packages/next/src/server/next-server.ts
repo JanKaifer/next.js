@@ -1292,6 +1292,7 @@ export default class NextNodeServer extends BaseServer {
       readFileSync: (f) => fs.readFileSync(f, 'utf8'),
       writeFile: (f, d) => fs.promises.writeFile(f, d, 'utf8'),
       mkdir: (dir) => fs.promises.mkdir(dir, { recursive: true }),
+      rmSync: (dir) => fs.rmSync(dir, { recursive: true, force: true }),
       stat: (f) => fs.promises.stat(f),
     }
   }
